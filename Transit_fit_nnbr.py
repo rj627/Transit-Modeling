@@ -18,7 +18,7 @@ def main():
 ##########              READ IN THE RAW PHOTOMETRY          ####################
 #################################################################################
     numecl=0
-    plnm='WASP_79'
+    plnm='WASP_101'
     verbose='false'
     fpath='/Users/rahuljayaraman/Documents/Miscellany/Research (Tucker Group)/Python (Transits)/' + plnm
     aorlist=os.listdir(fpath)
@@ -26,13 +26,13 @@ def main():
     #aorlist= [item for item in aorlist if not item.startswith('.')]
     #aorlist=aor_from_list(plnm, 1)
     #aorlist=[50494976]
-    aorlist = ['62173184', '62173696']
+    aorlist = ['62158336', '62159360']
     #aorlist=np.delete(aorlist, [0,1, len(aorlist)-1])
     for aor in aorlist:
         print (aor) 
         aor=str(aor)
         prisec='primary'
-        ramp_style='exp'
+        ramp_style='none'
         fpathout=fpath+aor+'/apr_fits/'+ramp_style +'/'
         directory = os.path.dirname(fpathout)
         if not os.path.exists(directory):
@@ -51,10 +51,12 @@ def main():
         npix=dd['beta_np']
         chnum=dd['ch']
         red_all=[]
+        orbparams[6] = 2456164.6934 #only for wasp-101b
 
 
     ################################################################################
         pred_ecl_time=get_pred_time(orbparams, t, prisec)
+        print (orbparams)
         print (pred_ecl_time - t[0])
         
         freeparams=[pred_ecl_time-t[0], orbparams[2]]
