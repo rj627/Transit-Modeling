@@ -257,7 +257,7 @@ def aor_from_list(planet, ch, basepath):
 
     return aor_selected
 
-def send_mail(filename, filepath, aor):
+def send_mail(filename, filepath, aor, servername, email, pwd):
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
@@ -294,10 +294,10 @@ def send_mail(filename, filepath, aor):
     # attach the instance 'p' to instance 'msg'
     msg.attach(p)
 
-    server = smtplib.SMTP('smtp.gmail.com:587')
+    server = smtplib.SMTP(servername)
     server.starttls()
     server.ehlo()
-    server.login('brian.m.kilpatrick@gmail.com', '@1RampantLion')
+    server.login(email, pwd)
     server.sendmail(fromx, to, msg.as_string())
     server.quit()
 
