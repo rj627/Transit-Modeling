@@ -5,12 +5,18 @@ import numpy as np
 from scipy.interpolate import griddata
 
 def find_coeffs(temp, log_g, metallicity, channel, type_limb):
-	if channel==1: filename='limb-darkening_ch1.csv'
-	elif channel==2: filename='limb-darkening_ch2.csv'
+	if channel==1: 
+		filename='limb-darkening_ch1.csv'
+		sep='\s*,\s*'
+		enc='ascii'
+	elif channel==2: 
+		filename='limb-darkening_ch2.csv'
+		sep = '\t'
+		enc='utf-8-sig'
 	else: 
 		print('invalid channel')
 		return
-	csv = pandas.read_csv(filename, '\t', header=0)
+	csv = pandas.read_csv(filename, sep, header=0, encoding=enc, engine='python')
 	temp_arr = csv['Temperature']
 	log_g_arr = csv['Log G']
 	met = csv['Metallicity']

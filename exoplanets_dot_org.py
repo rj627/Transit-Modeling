@@ -67,8 +67,8 @@ def get_orb_pars(plnm, basepath):
   orbpars[9]=logg[index]
   orbpars[10]=teff[index]
 
-
-
+  if plnm == 'WASP_101 b':
+    orbpars[6] = 2456164.6934 #hardcoded bc no data for WASP-101 in file
 
   return orbpars
 

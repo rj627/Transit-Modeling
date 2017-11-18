@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
-def main():
-	data = np.load('WASP_79/62173696.npz')
+def main(plnm, aor):
+	data = np.load(plnm + '/' + aor + 'extraction.npz')
 	lc = data['lc']
 	time = data['time']
-	print (time)
+	diff = data['hold_pos_diff']
+	for p in diff: print (str(p) + '\n')
 	n=250
 	lcp = [sum(lc[i:i+n, 1])/n for i in range(0,len(lc[:,1]),n)]
 	tp = [sum(time[i:i+n])/n for i in range(0,len(time),n)]
@@ -16,4 +18,4 @@ def main():
 	plt.scatter(time[:], lc[:,1]/np.mean(lc[:,1]), s=1)
 	plt.show()
 
-main()
+main(sys.argv[1], sys.argv[2])
