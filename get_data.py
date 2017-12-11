@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import os
 
 def main(plnm, aor, ramp):
-	data = np.load(plnm + '/' + aor + '/apr_fits/' + ramp + '/' + aor + '_mcmc_results.npz')
+	print (os.getcwd())
+	data = np.load('../'+plnm + '/' + aor + '/apr_fits/' + ramp + '/' + aor + '_mcmc_results.npz')
 	print (str(plnm) + ', ' + str(aor) + ', with ramp ' + str(ramp))
 	print('T0: ' + str(data['t0_mcmc']))
 	print('Rp: ' + str(data['rp_mcmc']))
