@@ -16,81 +16,51 @@ from exoplanets_dot_org import *
 import pandas as pd
 
 
-def main(plnm, channel, aornum):
+def main(plnm, plnm2, channel, aornum, email_from, email_to):
 
+    basepath= os.getcwd() + '/' + plnm + '/'
     
-    if plnm == 'HD209': plnm2='HD 209458 b'
-    if plnm == 'HD189': plnm2='HD 189733 b'
-    if plnm== 'W16': 
-        plnm2='WASP-16 b'
-        basepath='/Users/Brian/Desktop/Tucker_Group/Spitzer/mapping_files/'
-    
-    #basepath='/Users/Brian/Desktop/Tucker_Group/t_1/'
-    #basepath='/Users/Brian/Desktop/Tucker_Group/Spitzer/'+plnm+'/'
-    #basepath='/home/bkilpatr/mapping_files/'
-
-    if plnm== 'WASP_79': 
-        plnm2='WASP-79 b'
-        basepath='/Users/rahuljayaraman/Documents/Miscellany/Research (Tucker Group)/Python (Transits)/' + plnm + '/'
-
-    chnum=channel#1
-  
-    extract='on'
-    gaussiancent='on' 
-    
-    
-    radii=np.arange(10)/5.+2.00
-    var_rad=np.arange(10)/10.+1.0
+    radii=np.arange(10)/5.+1.80
+    var_rad=np.arange(10)/10.+0.8
     var_add=np.arange(10)/5-0.4
-    if aornum==[]:aornum=aor_from_list(plnm, chnum, basepath)
+    if aornum==[]:aornum=aor_from_list(plnm, channel, basepath)
 
-    print(aornum)
-    print (plnm)
-   
-    if extract=='on':  
-        extraction(aornum, chnum, plnm, plnm2, radii, var_rad, var_add, gaussiancent, basepath)
+    print('Extracting: ' + plnm + ', with AOR ' + str(aornum))
+    print ('Results will be saved to the following directory: ' + basepath + '.')
+    print ('Plots will be emailed to  ' + email_to + '. The email will be from   ' + email_from)
 
+    extraction(aornum, channel, plnm, plnm2, radii, var_rad, var_add, basepath, email_from, email_to)
 
-def extraction(aornum, chnum, plnm, plnm2, radii, var_rad, var_add, gaussiancent, basepath):
+def extraction(aornum, chnum, plnm, plnm2, radii, var_rad, var_add, basepath, fromx, to):
 
     for aor in aornum:
         aor=str(aor)
         paths = glob.glob(basepath+'r'+aor+ '/ch*')
-        fpathout='/Users/rahuljayaraman/Documents/Miscellany/Research (Tucker Group)/Python (Transits)/'+plnm+'/'+aor[-8:]
+        fpathout=basepath+aor[-8:]
         directory = os.path.dirname(fpathout)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        fpath=basepath+'r' + aor + '/ch' + str(chnum) + '/bcd/'
+        fpath=basepath+'r' + aor + '/ch' + str(chnum) + '/bcd/' #path to fits files
 
-        filenames=glob.glob(fpath+ '*bcd.fits')
+        filenames=glob.glob(fpath + '*bcd.fits')
         filenames.sort()
-        for i in filenames:
-            print (i)
-
         nframes=len(filenames)
-        print (fpath)
+        print ('Analyzing over ' + str(nframes) + ' frames.')
      
         hold_pos=np.zeros(shape=(nframes*64, 2))
+        hold_posg=np.zeros(shape=(nframes*64, 2))
+        hold_pos_diff = hold_pos - hold_posg
         central_pix=np.zeros(shape=(5,5, nframes*64))
-        #all_rad=np.concatenate((radii, var_rad))
         lightcurve=np.zeros(shape=(nframes*64, len(radii)+len(var_rad)+len(var_add)))
+        lightcurveg=np.zeros(shape=(nframes*64, len(radii)+len(var_rad)+len(var_add)))
         time=np.zeros(nframes*64)
         beta_np=np.zeros(nframes*64)
-        
-        
+
         for i in range(0,nframes):
             if i % 10==0: 
                 os.system('clear')
                 print(aor, i,' of ',str(nframes))
-                # if i !=0:
-                #     plt.close('all')
-                #     plt.figure()
-                #     plt.scatter((time[0:(i-1)*64]-time[0])*24.0*60., hold_pos[0:(i-1)*64,1], s=1, color='r')
-                #     plt.scatter((time[0:(i-1)*64]-time[0])*24.0*60., hold_pos[0:(i-1)*64,0]-0.5, s=1)
-                #     plt.ylim(14.2, 15.5)
-                #     plt.draw()
-                #     plt.pause(0.1)
 
             hdulist = fits.open(filenames[i])
             channel=str(hdulist[0].header['CHNLNUM'])
@@ -109,31 +79,41 @@ def extraction(aornum, chnum, plnm, plnm2, radii, var_rad, var_add, gaussiancent
                 bnp2=np.sum(np.multiply(data,data))
                 bnp=bnp1/bnp2
         
-                xc,yc=centroid(data, gaussiancent)
+                xc,yc, xcg, ycg=centroid(data) #use both centroiding
                 position=[xc,yc]
+                positiong = [xcg, ycg]
                 beta_np[64*i+j]=bnp
                 hold_pos[64*i+j, :]=position  
+                hold_posg[64*i+j, :]=positiong
+                hold_pos_diff[64*i+j,:] = hold_pos[64*i+j, :] - hold_posg[64*i+j, :]
                 vrad1=var_rad*np.sqrt(bnp)
                 vrad2=var_add+np.sqrt(bnp)
                 vrad=np.concatenate((vrad1, vrad2))
                 all_rad=np.concatenate((radii, vrad))
                 apertures = [CircularAperture(position, r=r) for r in all_rad]
+                aperturesg = [CircularAperture(positiong, r=r) for r in all_rad]
 
                 phot_table = aperture_photometry(scidata, apertures)
+                phot_tableg = aperture_photometry(scidata, aperturesg)
 
                 for q in range (0,len(all_rad)):
-                    if q ==0: phot=np.zeros(len(all_rad))
-                    phot[q]=phot_table.columns[q+3]  
+                    if q ==0: 
+                        phot=np.zeros(len(all_rad))
+                        photg=np.zeros(len(all_rad))
+                    phot[q]=phot_table.columns[q+3]
+                    photg[q] = phot_tableg.columns[q+3]  
                 time[64*i+j]=mmbjd+framtime*j/86400.0
                 lightcurve[64*i+j, :]=phot
+                lightcurveg[64*i+j,:]=photg
                 central_pix[:,:,64*i+j]=data[13:18, 13:18]
             hdulist.close()
         orbparams=get_orb_pars(plnm2, basepath)
 
-        #pmap=pmap_corr(hold_pos, channel)
+        #pmap=pmap_corr(hold_pos, channel) - if using pmap
 
-     
-        np.savez(fpathout+'extraction',  ch=channel, time=time, lc=lightcurve, cp=central_pix,  op=orbparams, exptime=exptime, framtime=framtime, beta_np=beta_np, hold_pos=hold_pos, all_rad=all_rad)
+        np.savez(fpathout+'extraction',  ch=channel, time=time, lc=lightcurve, lcg=lightcurveg, cp=central_pix,  op=orbparams, 
+            exptime=exptime, framtime=framtime, beta_np=beta_np, hold_pos=hold_pos, hold_posg=hold_posg, 
+            hold_pos_diff = hold_pos_diff, all_rad=all_rad, pos=position, posg=positiong)
         t=time
         npix=beta_np
 
@@ -156,56 +136,50 @@ def extraction(aornum, chnum, plnm, plnm2, radii, var_rad, var_add, gaussiancent
         plt.xlabel('Time')
         plt.savefig(fpathout+'xyb_plot')
 
+        plt.figure()
+        plt.subplot(311)
+        plt.title(plnm+' Ch: '+str(chnum)+'\n'+aor)
+        plt.scatter(t, hold_posg[:,0], s=1)
+        plt.ylim(14.5, 15.5)
+        plt.ylabel('X position - Gaussian')
+        plt.xticks([])
+        plt.subplot(312)
+        plt.scatter(t, hold_posg[:,1], s=1)
+        plt.ylim(14.5, 15.5)
+        plt.ylabel('Y position - Gaussian')
+        plt.xticks([])
+        plt.subplot(313)
+        plt.scatter(t, np.sqrt(npix), s=1)
+        plt.ylim(2, 3)
+        plt.ylabel('Sqrt Noise Pixel')
+        plt.xlabel('Time')
+        plt.savefig(fpathout+'xyb_plot_gaussian')
 
-        #send_mail('xyb_plot.png', fpathout, aor)
-
+        #send_mail('xyb_plot.png', fpathout, aor, fromx, to)
     return None
 
 
 def backgr(a):
-    
     backmask=np.zeros(shape=(32,32))
     backmask[10:20, 10:20]=1
     mean, median, std = sigma_clipped_stats(a, sigma=5.0, mask=backmask)
 
     return median
 
-def centroid(a, cent):
+def centroid(a):
+    top=19
+    bot=12
     
-    top=17
-    bot=14
-    
-    a=sigma_clip(a, sigma=7, iters=1)    
+    a = ma.masked_invalid(a)
+    #a=sigma_clip(a, sigma=7, iters=1)    
     a=a[bot:top+1, bot:top+1]
     a2=np.multiply(a,a)
     beta_np=np.sum(a)**2/np.sum(a2)
-    if cent=='on':
-        xc, yc = centroid_2dg(a)+bot
-    else:
-        xc, yc = centroid_com(a)+bot
-    return (xc,yc)    
+    xcg, ycg = centroid_2dg(a)+bot
+    xc, yc = centroid_com(a)+bot
+    return xc,yc, xcg, ycg   
 
-# def get_aor(plnm, plnm2, t1, basepath):
-#     #a=find_all_dir('/Users/Brian/Desktop/Tucker_Group/Spitzer/'+plnm2)
-#     if t1 != 'true':
-#         #a=os.listdir('/Users/Brian/Desktop/Tucker_Group/Spitzer/'+plnm)
-#         basepath='/Users/Brian/Desktop/Tucker_Group/Spitzer/'+plnm+'/'
-#         a=glob.glob(basepath+ 'r*')
-        
-
-      
-#     else: 
-#         #basepath='/Users/Brian/Desktop/Tucker_Group/t_1/'
-#         a=glob.glob(basepath+ 'r*')
-#         nn=[ name for name in os.listdir(basepath) if os.path.isdir(os.path.join(basepath, name)) ]
-#         del nn[0]    
-
-        
-#     print(a)
-#     sys.exit()
-#     return a
 def pmap_corr(position,  channel):
-
 
     from scipy.interpolate import griddata
 
@@ -232,7 +206,6 @@ def pmap_corr(position,  channel):
         pmap=hdulist[0].data
         hdulist.close()
 
-
     x=np.ravel(xgrid)
     y=np.ravel(ygrid)
     values=np.ravel(pmap)
@@ -246,7 +219,6 @@ def pmap_corr(position,  channel):
 
 def aor_from_list(planet, ch, basepath):
     filename=basepath+'aor_list.csv'
-    #filename='/home/bkilpatr/Spitzer_Routines/aor_list.csv'
     aor_arr=pd.read_csv(filename)
     chlist=aor_arr.CH
     aorlist=aor_arr.AOR
@@ -254,32 +226,23 @@ def aor_from_list(planet, ch, basepath):
     ch_aors=np.where((namelist==planet) & (chlist==ch))
     aor_selected=np.array(aorlist[np.squeeze(ch_aors)])
 
-
     return aor_selected
 
-def send_mail(filename, filepath, aor, servername, email, pwd):
+def send_mail(filename, filepath, aor, servername, email, pwd, fromx, to):
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
     from email import encoders
 
-
-
-    fromx = 'brian.m.kilpatrick@gmail.com'
-    to  = 'brian_kilpatrick@brown.edu'
     msg = MIMEMultipart()
-    #msg = MIMEText('Python test')
     msg['Subject'] = 'Extraction Complete: '+aor
     msg['From'] = fromx
     msg['To'] = to
 
-
     body='The extraction for AOR '+aor+' is now complete.  Plots are attached.\n'
 
     msg.attach(MIMEText(body, 'plain'))
-    #filename="t1_sys.png"
-    #filepath="/home/bkilpatr/mapping_files/"
     attachment= open(filepath+filename, 'rb')
     p = MIMEBase('application', 'octet-stream')
      
@@ -303,6 +266,4 @@ def send_mail(filename, filepath, aor, servername, email, pwd):
 
     return None
 
-
-
-main(sys.argv[1], int(sys.argv[2]), [sys.argv[3]])
+main(sys.argv[1], sys.argv[2], int(sys.argv[3]), [sys.argv[4]], sys.argv[5], sys.argv[6])
