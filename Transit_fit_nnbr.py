@@ -48,7 +48,6 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
 
     ################################################################################
         pred_ecl_time=get_pred_time(plnm, orbparams, t, prisec)
-        
         freeparams=[pred_ecl_time-t[0], orbparams[2]]
     
         if prisec == 'secondary': 
@@ -160,7 +159,11 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
                 nbr=ff['nbr']
             else:
                 if verbose=='true':  print('In Find NBR')
-                gw, nbr=find_nbr_qhull(xpos, ypos, npix, sm_num = 50, a = 1.0, b = 1.7777, c = 1.0, print_space = 10000.)
+                gw, nbr=find_nbr_qhull(xpos, ypos, npix, sm_num = 50, a = 1.0, b = 1.0, c = 1.0, print_space = 10000.)
+
+                print(nbr[0])
+                exit(0)
+
                 if verbose=='true':  print('Out of Find NBR')
             np.savez(fpath+aor+'/apr_fits/post_filter_'+str(apr), lc=lc, cp3=cp3, time=time, xpos=xpos, ypos=ypos, npix=npix, err=err, gw=gw, nbr=nbr, orbparams=orbparams, pred_ecl_time=pred_ecl_time)
             
@@ -169,7 +172,7 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
 ################################################################################     
 
             if ramp_style=='linear': freeparams=[pred_ecl_time-t[0], orbparams[2], 0.00, 1.0] 
-            if ramp_style=='exp': freeparams=[pred_ecl_time-t[0], orbparams[2], 0.005, 0.05] 
+            if ramp_style=='exp': freeparams=[pred_ecl_time-t[0], orbparams[2], 0.005, 0.04] 
             if ramp_style=='none':freeparams=[pred_ecl_time-t[0], orbparams[2]]
             if ramp_style=='slant':freeparams=[pred_ecl_time-t[0], orbparams[2], 0.]
 
@@ -207,8 +210,6 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
             pltbins=int(round(300./framtime, 0))
             #pltbins=int(round(np.amax(time)*86400./100./framtime))
       
-
-      
             bres=bin_anything(resids, pltbins)
             blc=bin_anything(w5, pltbins)
             btime=bin_anything(time, pltbins)
@@ -217,15 +218,12 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
             if prisec=='primary': phase=0.0+(time+t[0]-pred_ecl_time)/orbparams[5] 
             bphase=bin_anything(phase, pltbins)
 
-
             plot_fit(phase, bphase, w5, blc,  eclipse_model, resids, bres, fpathout, str(apr), plnm, verbose, ramp_style)
 
             file_name=fpathout+'apr_fit_'+str(apr)
             fileObject = open(file_name,'wb') 
             pickle.dump([lc, time, err, gw, nbr, fit_params, resids],fileObject)
             fileObject.close()
-           
-          
             
 ################################################################################
 ##########                 Get Red Noise                    ####################
@@ -234,20 +232,12 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
             if red_all ==[]: red_all=np.ones(shape=(all_lc.shape[1], 5))*1000.
             red_all[apr,:]=[sdnr, beta_red*sdnr, beta_red, round(fit_params[1]*1.e6, 1), fit_params[0]]
           
-             
-
-
-
         best=np.nanargmin(red_all,axis=0)
         best=best[1]
-
 
         np.save(fpathout+aor+'_summary', red_all)
         np.savetxt(fpathout+aor+'_summary', red_all)
         if verbose=='true': print(best)
-
-
-
 
 ################################################################################
 ##########                 Load the best apr results        ####################
@@ -265,9 +255,10 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
 ##########                        run_mcmc                 ####################
 ################################################################################  
         theta=fit_params
-        ndim, nwalkers = len(theta), 30
+
+        ndim, nwalkers = len(theta), 50
         sampler=emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(time, lc, err, gw, nbr, params, m, prisec, ramp_style))
-        pos=[theta+1.e-4*np.random.randn(ndim) for i in range(nwalkers)]
+        pos=[theta+1.e-2*np.random.randn(ndim) for i in range(nwalkers)]
         sampler.run_mcmc(pos, 2500);
 
         samples=sampler.chain[:,50:,:].reshape((-1,ndim))
@@ -284,7 +275,7 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
         #plt.show(block=False)
         #plt.pause(0.5)  
 
- #Derive error bars
+        #Derive error bars
         if ramp_style=='exp': 
             t0_mcmc, rp_mcmc, a1_mcmc, a2_mcmc=map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
             np.savez(fpathout+aor+'_mcmc_results', rp_mcmc=rp_mcmc, t0_mcmc=t0_mcmc, a1_mcmc=a1_mcmc, a2_mcmc=a2_mcmc, best=best, bic=BIC)
@@ -294,8 +285,6 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
         elif ramp_style=='none': 
             t0_mcmc, rp_mcmc=map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(samples, [16, 50, 84], axis=0)))
             np.savez(fpathout+aor+'_mcmc_results', rp_mcmc=rp_mcmc, t0_mcmc=t0_mcmc,  best=best, bic=BIC)
-
-        print(rp_mcmc, t0_mcmc, BIC)
         
         phase=0.0+(time+t[0]-pred_ecl_time)/orbparams[5] 
         bphase=bin_anything(phase, pltbins)
@@ -322,9 +311,6 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
                 w5=w4*ecl_mod
                 resids=(w4-1.)#/err
                 res2=(lc/ecl_mod-1.0)/err
-
-            blc=bin_anything(w5, pltbins)
-            btime=bin_anything(time, pltbins)
         elif ramp_style=='slant'  :    
             for t0, rp, a1 in samples[np.random.randint(len(samples), size=100)]:
                 params.rp = rp
@@ -360,8 +346,9 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
                 resids=(w4-1.)#/err
                 res2=(lc/ecl_mod-1.0)/err
 
-                blc=bin_anything(w5, pltbins)
-                btime=bin_anything(time, pltbins)
+        blc=bin_anything(w5, pltbins)
+        btime=bin_anything(time, pltbins)
+
         plt.scatter(bphase, blc, s=8, alpha=0.35)
         plt.xlabel("Phase Units")
         plt.ylabel("Relative Flux")
