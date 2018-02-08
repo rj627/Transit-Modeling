@@ -69,7 +69,7 @@ def verify():
 			curr = np.array(np.transpose(curr))
 			tru_row = true_csv.iloc[i]
 			true = np.array(tru_row)
-			if (i%500 == 0): print('yo ' + str(i))
+			if (i%500 == 0): print('At index ' + str(i))
 			inters = set(true).intersection(set(curr))
 			print(50 - len(inters))
 		print(count)

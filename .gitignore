@@ -2,4 +2,3 @@ __pycache__/
 WASP_*/
 .DS_Store
 *.npz
-*.csv
