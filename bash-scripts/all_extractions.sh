@@ -1,5 +1,4 @@
 #!/bin/bash
-
 echo "This script runs extractions for all available transit observations for WASP-52, WASP-62, WASP-63, WASP-67, WASP-79, WASP-101."
 echo "Beginning all extractions. Working on extracting WASP-52, Channel 1"
 python spitzer_extraction.py WASP_52 'WASP-52 b' 1 61517056 rahulj.4999@gmail.com rahulj.4999@gmail.com

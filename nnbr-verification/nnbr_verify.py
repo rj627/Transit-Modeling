@@ -9,7 +9,7 @@ import os
 def verify():
 	arr = list(range(100000))
 	read = 't'
-	mode = 'p'
+	mode = 'i'
 
 	if (read == 'f'):
 		xpos = list(range(100000))
@@ -96,6 +96,14 @@ def verify():
 		curr_nbrs = list(phots[nbr[i]])
 		curr_sum = curr_nbrs*gw[i]
 		arr2[i] = np.sum(curr_sum)
+
+	csvfile2 = open('old_arr2-i.csv', 'w')
+	fieldnames = ['old_pos']
+	writer = csv.DictWriter(csvfile2, fieldnames=fieldnames)
+
+	writer.writeheader()
+	for i in ypos:
+		writer.writerow({'old_pos': str(i)})
 
 	plt.scatter(bin_anything(arr, 100), bin_anything(phots, 100), s=1)
 	plt.scatter(bin_anything(arr, 100), bin_anything(arr2, 100), s=1)

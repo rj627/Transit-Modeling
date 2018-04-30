@@ -20,9 +20,9 @@ def main(plnm, plnm2, channel, aornum, email_from, email_to):
 
     basepath= os.getcwd() + '/' + plnm + '/'
     
-    radii=np.arange(10)/5.+1.80
-    var_rad=np.arange(10)/10.+0.8
-    var_add=np.arange(10)/5-0.4
+    radii=np.arange(20)/10.+1.4 #reduced aperture radii
+    var_rad=np.array([])#np.arange(10)/10.+0.8
+    var_add=np.array([])#np.arange(10)/5-0.4
     if aornum==[]:aornum=aor_from_list(plnm, channel, basepath)
 
     print('Extracting: ' + plnm + ', with AOR ' + str(aornum))
@@ -90,8 +90,8 @@ def extraction(aornum, chnum, plnm, plnm2, radii, var_rad, var_add, basepath, fr
                 vrad2=var_add+np.sqrt(bnp)
                 vrad=np.concatenate((vrad1, vrad2))
                 all_rad=np.concatenate((radii, vrad))
-                apertures = [CircularAperture(position, r=r) for r in all_rad]
-                aperturesg = [CircularAperture(positiong, r=r) for r in all_rad]
+                apertures = [CircularAperture(position, r=r) if r > 0 else CircularAperture(position, r=2.0) for r in all_rad]
+                aperturesg = [CircularAperture(positiong, r=r) if r > 0 else CircularAperture(positiong, r=2.0) for r in all_rad]
 
                 phot_table = aperture_photometry(scidata, apertures)
                 phot_tableg = aperture_photometry(scidata, aperturesg)

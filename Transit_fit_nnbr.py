@@ -153,18 +153,17 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
 ################################################################################
 ##########             FIND NEIGHBORS                ####################
 ################################################################################
-            
+
             if (found=='true') & (trim_time==0.):
                 gw=ff['gw']
                 nbr=ff['nbr']
             else:
-                if verbose=='true':  print('In Find NBR')
-                gw, nbr=find_nbr_qhull(xpos, ypos, npix, sm_num = 50, a = 1.0, b = 1.0, c = 1.0, print_space = 10000.)
+                if verbose=='true':  
+                    print('In Find NBR')
+                gw, nbr=gaussian_weights_and_nearest_neighbors(xpos, ypos, npix, returnInds=True, a = 1.0, b = 1.0, c = 1.0, nCores=10)
 
-                print(nbr[0])
-                exit(0)
-
-                if verbose=='true':  print('Out of Find NBR')
+            if verbose=='true':  
+                print('Out of Find NBR')
             np.savez(fpath+aor+'/apr_fits/post_filter_'+str(apr), lc=lc, cp3=cp3, time=time, xpos=xpos, ypos=ypos, npix=npix, err=err, gw=gw, nbr=nbr, orbparams=orbparams, pred_ecl_time=pred_ecl_time)
             
 ################################################################################
@@ -271,9 +270,7 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
         if ramp_style=='exp':  fig=corner.corner(samples,labels=[ "t0", depth_label, "a1", "a2"])#, "A/R", "inc"])
         elif ramp_style=='slant':  fig=corner.corner(samples,labels=[ "t0", depth_label, "a1"])#, "A/R", "inc"])
         elif ramp_style=='none':  fig=corner.corner(samples,labels=[ "t0", depth_label])#, "A/R", "inc"])
-        fig.savefig(fpathout+aor+'_corner_'+str(best)+'.png')
-        #plt.show(block=False)
-        #plt.pause(0.5)  
+        fig.savefig(fpathout+aor+'corner_'+str(best)+'.png')
 
         #Derive error bars
         if ramp_style=='exp': 
@@ -353,7 +350,7 @@ def main(aorlist, plnm, ramp_style, trim_time, verbose, prisec):
         plt.xlabel("Phase Units")
         plt.ylabel("Relative Flux")
         plt.title(plnm+' Ch: '+ str(chnum) + ', Ramp: ' + ramp_style)
-        plt.savefig('/Users/rahuljayaraman/Desktop/'+plnm+'/' +str(chnum)+'_mcmc_fit_'+ramp_style)
+        plt.savefig('/Users/rahuljayaraman/Desktop/'+plnm+str(chnum)+'_mcmc_fit_'+ramp_style)
         plt.show()
     return None
 

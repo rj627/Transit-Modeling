@@ -4,7 +4,7 @@ import sys
 import os
 
 def main(plnm, aor, ramp):
-	data = np.load('../'+plnm + '/' + aor + '/apr_fits/' + ramp + '/' + aor + '_mcmc_results.npz')
+	data = np.load(os.getcwd() + '/' + plnm + '/' + aor + '/apr_fits/' + ramp + '/' + aor + '_mcmc_results.npz')
 	print (str(plnm) + ', ' + str(aor) + ', with ramp ' + str(ramp))
 	print('\n')
 	print('BIC: ' + str(data['bic']))
